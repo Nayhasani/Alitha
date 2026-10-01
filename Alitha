@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alitha my Beautiful girlfriend</title>
+<style>
+:root{--sky1:#fde9d8;--sky2:#f7c9c0;--ground:#6b8f4e;--ground2:#557a3c;--ink:#4a2f3a;--btn:#ffffffcc;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sky1:#1c1b3a;--sky2:#4a3a6b;--ground:#23402f;--ground2:#17301f;--ink:#f3e9ff;--btn:#ffffff22}}
+:root[data-theme="dark"]{--sky1:#1c1b3a;--sky2:#4a3a6b;--ground:#23402f;--ground2:#17301f;--ink:#f3e9ff;--btn:#ffffff22}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(var(--sky1),var(--sky2));color:var(--ink);font-family:Georgia,"Times New Roman",serif;-webkit-tap-highlight-color:transparent}
+#ground{position:fixed;left:0;right:0;bottom:0;height:13%;background:linear-gradient(var(--ground),var(--ground2))}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:manipulation;cursor:crosshair}
+#ui{position:fixed;top:calc(env(safe-area-inset-top,0px) + 16px);left:0;right:0;text-align:center;pointer-events:none}
+h1{margin:0 16px;line-height:1.25;font-size:1.6rem;font-weight:normal;letter-spacing:.02em}
+#hint{margin:6px 0 0;opacity:.8;transition:opacity .8s}
+#bar{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;gap:8px}
+button{font:inherit;color:var(--ink);background:var(--btn);border:1px solid #ffffff55;border-radius:999px;padding:8px 16px;cursor:pointer}
+button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="ground"></div>
+<canvas id="c" aria-label="Flower garden. Click or tap to plant flowers."></canvas>
+<div id="ui"><h1>Alitha my Beautiful girlfriend</h1><p id="hint">Tap anywhere to plant a flower</p></div>
+<div id="bar"><button id="bunch">Plant a bunch</button><button id="clear">Clear</button></div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W,H,dpr;
+function size(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',size);size();
+const PET=['#ff7a90','#ffd166','#f6f1ff','#ff9f68','#b69cff','#7fd1ff','#ff6fb5'];
+const MID=['#ffb703','#7a3b2e','#fff1a8','#e85d75'];
+const flowers=[];
+const rnd=(a,b)=>a+Math.random()*(b-a);
+function plant(x,y){
+  const by=H*rnd(.89,.97);
+  const h=by-y; if(h<50)return;
+  flowers.push({x,by,h,t0:performance.now(),dur:reduce?1:rnd(1800,2600),
+    n:Math.round(rnd(5,12)),r:rnd(16,34)*Math.min(1,W/500+.5),
+    p:PET[Math.floor(rnd(0,PET.length))],m:MID[Math.floor(rnd(0,MID.length))],
+    ph:rnd(0,6.28),lean:rnd(-30,30),round:Math.random()<.5});
+}
+function ease(t){return 1-Math.pow(1-t,3)}
+function draw(now){
+  ctx.clearRect(0,0,W,H);
+  for(const f of flowers){
+    const g=Math.min(1,(now-f.t0)/f.dur);
+    const s=ease(Math.min(1,g/.6));
+    const b=ease(Math.max(0,(g-.5)/.5));
+    const sway=reduce?0:Math.sin(now/1100+f.ph)*8;
+    const tx=f.x+(f.lean+sway)*s, ty=f.by-f.h*s;
+    const cx=f.x+f.lean*.2, cy=f.by-f.h*s*.55;
+    ctx.strokeStyle='#4f7d3a';ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(f.x,f.by);ctx.quadraticCurveTo(cx,cy,tx,ty);ctx.stroke();
+    if(s>.4){
+      const lx=cx*.5+f.x*.25+tx*.25, ly=f.by-f.h*s*.45, ls=Math.min(1,(s-.4)/.6);
+      ctx.fillStyle='#5f9444';
+      for(const d of[-1,1]){ctx.save();ctx.translate(lx,ly);ctx.rotate(d*.9);
+        ctx.beginPath();ctx.ellipse(d*14*ls,0,16*ls,6*ls,0,0,6.28);ctx.fill();ctx.restore()}
+    }
+    if(b>0){
+      ctx.save();ctx.translate(tx,ty);ctx.rotate(f.ph+(reduce?0:now/9000)*(f.ph>3?-1:1));
+      ctx.fillStyle=f.p;
+      for(let i=0;i<f.n;i++){
+        ctx.save();ctx.rotate(i/f.n*6.28);
+        ctx.beginPath();
+        if(f.round)ctx.ellipse(0,-f.r*.75*b,f.r*.42*b,f.r*.75*b,0,0,6.28);
+        else{ctx.moveTo(0,0);ctx.quadraticCurveTo(f.r*.7*b,-f.r*.5*b,0,-f.r*1.5*b);ctx.quadraticCurveTo(-f.r*.7*b,-f.r*.5*b,0,0)}
+        ctx.fill();ctx.restore();
+      }
+      ctx.fillStyle=f.m;ctx.beginPath();ctx.arc(0,0,f.r*.34*b,0,6.28);ctx.fill();
+      ctx.restore();
+    }else{
+      ctx.fillStyle='#5f9444';ctx.beginPath();ctx.arc(tx,ty,4*s,0,6.28);ctx.fill();
+    }
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+let hinted=false;
+function hide(){if(!hinted){hinted=true;document.getElementById('hint').style.opacity=0}}
+cv.addEventListener('pointerdown',e=>{plant(e.clientX,e.clientY);hide()});
+document.getElementById('bunch').onclick=()=>{hide();for(let i=0;i<9;i++)setTimeout(()=>plant(rnd(W*.05,W*.95),rnd(H*.2,H*.75)),reduce?0:i*180)};
+document.getElementById('clear').onclick=()=>{flowers.length=0};
+setTimeout(()=>{for(let i=0;i<5;i++)setTimeout(()=>plant(W*(.15+i*.18)+rnd(-20,20),H*rnd(.35,.7)),i*350)},300);
+</script>
+</body>
+</html>
